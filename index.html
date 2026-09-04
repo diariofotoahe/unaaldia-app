@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <!-- PWA / Android -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="./manifest.json">
+
+    <!-- PWA / iOS (Apple) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="UnaAlDia">
+    <link rel="icon" href="./static/icon-192.png">
+    <link rel="apple-touch-icon" href="./static/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="./static/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="./static/icon-512.png">
+
+    <!-- SEO -->
+    <meta name="description" content="Tu diario visual con IA. Una foto, un recuerdo, una vida.">
+    <meta name="keywords" content="diario, fotos, recuerdos, IA, memoria, vida">
+    <title>UnaAlDia — Legado Digital</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Identity Services (para Drive OAuth) -->
+    <script src="https://accounts.google.com/gsi/client" defer></script>
+
+    <!-- React 18 (UMD) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/estilos.css">
+
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Cambiado de ./sw.js a /sw.js para asegurar que el scope sea la raíz del sitio
+                navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' })
+                    .then(reg => {
+                        console.log('[PWA] Service Worker registrado. Scope:', reg.scope);
+                        window.driveSyncRegistration = reg;
+
+                        navigator.serviceWorker.addEventListener('message', (event) => {
+                            if (event.data && event.data.type === 'SYNC_DRIVE') {
+                                if (window.driveModule) window.driveModule.syncPending();
+                            }
+                        });
+
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    if (window.__onSwUpdate) window.__onSwUpdate();
+                                }
+                            });
+                        });
+                    })
+                    .catch(err => console.warn('[PWA] SW no pudo registrarse:', err));
+            });
+        }
+
+        async function registerDriveSync() {
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    await reg.sync.register('sync-drive');
+                } catch (err) {
+                    console.warn('[PWA] No se pudo registrar sync-drive:', err);
+                }
+            }
+        }
+        window.registerDriveSync = registerDriveSync;
+
+        Babel.registerPreset('custom-preset', {
+            presets: [
+                [Babel.availablePresets['react'], { runtime: 'classic' }],
+                Babel.availablePresets['env']
+            ]
+        });
+    </script>
+
+    <script src="js/helpers.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/drive.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/movie.js"></script>
+
+    <script type="text/babel" src="js/components.js" data-presets="custom-preset"></script>
+    <script type="text/babel" src="js/modals/edit-memory-modal.js" data-presets="custom-preset"></script>
+    <script type="text/babel" src="js/modals/profile-modal.js" data-presets="custom-preset"></script>
+    <script type="text/babel" src="js/modals/confirm-delete-modal.js" data-presets="custom-preset"></script>
+    <script type="text/babel" src="js/capture.js" data-presets="custom-preset"></script>
+    <script type="text/babel" src="js/history.js" data-presets="custom-preset"></script>
+    <script type="text/babel" src="js/albums.js" data-presets="custom-preset"></script>
+    <script type="text/babel" src="js/biographer.js" data-presets="custom-preset"></script>
+    <script type="text/babel" src="js/video.js" data-presets="custom-preset"></script>
+    <script type="text/babel" src="js/app.js" data-presets="custom-preset"></script>
+</body>
+</html>
+

@@ -1,0 +1,64 @@
+                     {view === 'capture' && (
+                            <div className="space-y-5">
+                                <div className={`border p-5 rounded-[1.5rem] backdrop-blur-sm ${dm ? 'bg-white/10 border-white/10' : 'bg-white/80 border-slate-200 shadow-md'}`}>
+                                    {/* Fecha + Carpeta */}
+                                    <div className="flex justify-between items-center mb-5">
+                                        <div>
+                                            <label className={`text-[9px] uppercase tracking-widest font-bold block mb-1 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Fecha</label>
+                                            <input type="date" value={currentDate} onChange={e => setCurrentDate(e.target.value)}
+                                                className={`bg-transparent text-xs border-none outline-none cursor-pointer font-semibold ${dm ? 'text-white' : 'text-slate-900'}`} />
+                                        </div>
+                                        <div>
+                                            <label className={`text-[9px] uppercase tracking-widest font-bold block mb-1 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Carpeta</label>
+                                            <select value={currentFolder} onChange={e => setCurrentFolder(e.target.value)}
+                                                className={`bg-transparent text-xs outline-none cursor-pointer font-medium ${dm ? 'text-white' : 'text-slate-900'}`}>
+                                                {folders.map(f => <option key={f} value={f} className="bg-slate-900 text-white">{f}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Drop zone */}
+                                    <div className="relative group mb-4">
+                                        <div className={`w-full h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all ${dm ? 'bg-white/[0.04] border-white/20 hover:bg-white/[0.08]' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}>
+                                            <span className="text-3xl mb-1">📷</span>
+                                            <p className={`text-[11px] font-medium ${dm ? 'text-slate-200' : 'text-slate-700'}`}>Tomar foto / Cargar archivo</p>
+                                            <p className={`text-[9px] mt-0.5 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Máx. 10 por día · Fotos y Videos</p>
+                                            <input type="file" accept="image/*,video/*" capture="environment" multiple onChange={handleFileUpload}
+                                                className="absolute inset-0 opacity-0 cursor-pointer" />
+                                        </div>
+                                    </div>
+
+                                    {/* Previsualización */}
+                                    {newPhotos.length > 0 && (
+                                        <div className="grid grid-cols-5 gap-2 mb-4">
+                                            {newPhotos.map(p => (
+                                                <div key={p.id} className={`relative aspect-square rounded-xl overflow-hidden border ${dm ? 'border-white/20' : 'border-slate-300'}`}>
+                                                    {isVideo(p.url, p.mimeType) ? <video src={p.url} className="w-full h-full object-cover" muted /> : <img src={p.url} className="w-full h-full object-cover" alt="" />}
+                                                    <button onClick={() => setNewPhotos(prev => prev.filter(x => x.id !== p.id))}
+                                                        className="absolute top-0.5 right-0.5 bg-black/80 text-white rounded-full w-4 h-4 text-[9px] flex items-center justify-center leading-none">
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Comentario */}
+                                    <div className="space-y-3">
+                                        <textarea value={currentComment} onChange={e => setCurrentComment(e.target.value)}
+                                            placeholder="¿Qué viviste hoy? Escríbelo o deja que la IA redacte por ti..."
+                                            className={`w-full h-20 border rounded-xl p-3 text-xs outline-none resize-none focus:ring-1 focus:ring-slate-400 transition-all ${dm ? 'bg-white/[0.04] border-white/10 text-white placeholder-slate-400' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`} />
+                                        <div className="flex gap-2">
+                                            <button onClick={handleAiEnhanceDaily} disabled={isAiTyping || isSaving}
+                                                className={`flex-1 border py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition-all btn-ripple ${dm ? 'bg-white/10 border-white/20 text-white hover:bg-white/20' : 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200'} disabled:opacity-50`}>
+                                                {isAiTyping ? (<><div className="typing-indicator"><span/><span/><span/></div> Redactando...</>) : '✨ IA Redactar'}
+                                            </button>
+                                            <button onClick={handleSaveDay} disabled={isSaving || newPhotos.length === 0}
+                                                className={`flex-1 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md btn-ripple ${dm ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'} disabled:opacity-50`}>
+                                                {isSaving ? '⏳ Guardando...' : '💾 Guardar Día'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}

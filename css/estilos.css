@@ -1,0 +1,89 @@
+* { -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            background: #0f172a;
+            font-weight: 300;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* iOS safe area */
+        .safe-top    { padding-top: max(1.5rem, env(safe-area-inset-top)); }
+        .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+
+        /* El viewport móvil cambia al mostrar u ocultar las barras del navegador.
+           `100dvh` mantiene el contenedor dentro del área realmente visible. */
+        .app-shell {
+            height: 100vh !important;
+            height: 100dvh !important;
+        }
+
+        .app-tabs {
+            min-height: calc(3.5rem + env(safe-area-inset-bottom));
+        }
+
+        /* En teléfonos la barra debe referenciarse al viewport, no a un
+           contenedor que puede quedar recortado por la barra del navegador. */
+        @media (max-width: 767px) {
+            .app-tabs {
+                position: fixed !important;
+                bottom: 0;
+                z-index: 60;
+            }
+        }
+
+        .view-transition { transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
+
+        /* Scrollbar custom */
+        .custom-scroll::-webkit-scrollbar { width: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+        /* Marquee */
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .marquee-container { overflow: hidden; width: 100%; display: flex; align-items: center; }
+        .marquee-content { display: flex; white-space: nowrap; gap: 2rem; animation: marquee 25s linear infinite; }
+        .marquee-container:hover .marquee-content { animation-play-state: paused; }
+
+        /* Date picker dark */
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
+        /* Modals */
+        @keyframes fade-in { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes fade-in-down { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fade-in 0.22s ease-out; }
+        .animate-fade-in-down { animation: fade-in-down 0.22s ease-out; }
+
+        /* Toast progress bar */
+        @keyframes toast-progress { from { width: 100%; } to { width: 0%; } }
+        .toast-progress { animation: toast-progress 4s linear forwards; }
+
+        /* Typing indicator */
+        .typing-indicator span {
+            display: inline-block; width: 6px; height: 6px;
+            background-color: #94a3b8; border-radius: 50%; margin-right: 3px;
+            animation: bob 1s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+        /* Splash */
+        @keyframes splash-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.96); } }
+        .splash-pulse { animation: splash-pulse 1.8s ease-in-out infinite; }
+
+        /* Install banner */
+        @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .slide-up { animation: slide-up 0.4s ease-out; }
+
+        /* Ripple for buttons */
+        .btn-ripple { position: relative; overflow: hidden; }
+        .btn-ripple:after {
+            content: ''; position: absolute; border-radius: 50%; background: rgba(255,255,255,0.25);
+            transform: scale(0); width: 100px; height: 100px; top: 50%; left: 50%;
+            margin-top: -50px; margin-left: -50px;
+            transition: transform 0.4s, opacity 0.4s;
+            opacity: 0;
+        }
+        .btn-ripple:active:after { transform: scale(2.5); opacity: 0; transition: 0s; }

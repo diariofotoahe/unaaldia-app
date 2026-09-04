@@ -1,0 +1,14 @@
+{
+    "user": {
+        "nombre": "Alejandro H E",
+        "usuario": "aenriquez",
+        "email": "aenriquezh@gmail.com",
+        "foto_perfil": "avatar_44732403647e497895444648255d42a3.jpg"
+    },
+    "config": {
+        "ruta_almacenamiento": "C:\\DatosAhe\\ProgramacionDura\\Python\\UnDiaUnaFoto\\Fotos",
+        "modo_oscuro": true,
+        "gdrive_folder": "https://docs.google.com/spreadsheets/d/1Ruz2ndh3Gm7trGiuFfqaEooYnZB6ZytFAtHEIConnTg/edit?usp=drive_link",
+        "gdrive_client_id": "484602823489-rlsk0qqk82gk9d8umqsk54ed0eqjej23.apps.googleusercontent.com"
+    }
+}
