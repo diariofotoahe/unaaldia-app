@@ -295,7 +295,7 @@ const App = () => {
             for (const photo of newPhotos) {
                 const timestamp = fmtTime();
                 const localMemory = {
-                    id: photo.id, url: photo.url, mimeType: photo.mimeType, name: photo.name,
+                    id: photo.id, url: photo.url, localUrl: photo.url, mimeType: photo.mimeType, name: photo.name,
                     date: currentDate, timestamp, folder: currentFolder,
                     comment: currentComment || 'Sin comentarios registrados.',
                     pendingSync: false, driveId: null, driveUrl: null
@@ -310,7 +310,6 @@ const App = () => {
                         });
                         localMemory.driveId = driveResult.driveId;
                         localMemory.driveUrl = driveResult.driveUrl;
-                        localMemory.url = driveResult.driveUrl;
                         await idbSaveMemory(localMemory);
                         console.debug('[handleSaveDay] saved Drive memory', localMemory);
                         driveCount++;
@@ -362,6 +361,7 @@ const App = () => {
             let updated = { ...editingMemory };
             if (editingMemory.newFile) {
                 updated.url = await fileToBase64(editingMemory.newFile);
+                updated.localUrl = updated.url;
                 updated.mimeType = editingMemory.newFile.type;
                 const pending = await idbGetAllPending();
                 const pend = pending.find(p => p.id === updated.id);

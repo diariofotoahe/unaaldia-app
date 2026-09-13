@@ -254,10 +254,38 @@
         },
 
         async getVerifiedMediaUrl(memory) {
-            const fallback = memory?.driveUrl || memory?.driveViewLink || memory?.url || '';
-            if (!memory?.driveId || !this.accessToken || !this.isConnected) return fallback;
+            const localUrl = memory?.localUrl || (memory?.url && /^(data:|blob:)/i.test(memory.url) ? memory.url : '');
+            if (localUrl) return localUrl;
+
+            let pending = null;
             try {
-                const response = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(memory.driveId)}?alt=media`, {
+                pending = memory?.id && typeof idbGetAllPending === 'function'
+                    ? (await idbGetAllPending()).find(item => item.id === memory.id)
+                    : null;
+            } catch (error) {
+                console.warn('[Drive] No se pudo leer la copia local pendiente:', error);
+            }
+            if (pending?.fileBlob) return URL.createObjectURL(pending.fileBlob);
+
+            const fallback = memory?.driveUrl || memory?.driveViewLink || memory?.url || '';
+            if (!this.accessToken || !this.isConnected) return fallback;
+
+            try {
+                let driveId = memory?.driveId;
+                if (!driveId) {
+                    await this.ensureFolder();
+                    if (!this.folderId) return fallback;
+                    const expectedName = `${memory?.date || ''}_${memory?.id || ''}`;
+                    const query = encodeURIComponent(`'${this.folderId}' in parents and name contains '${expectedName.replace(/'/g, "\\'")}' and trashed=false`);
+                    const searchResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&pageSize=10&orderBy=modifiedTime desc&fields=files(id,name)`, {
+                        headers: { Authorization: `Bearer ${this.accessToken}` }
+                    });
+                    const searchData = await searchResponse.json();
+                    driveId = searchData.files?.[0]?.id;
+                }
+                if (!driveId) return fallback;
+
+                const response = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(driveId)}?alt=media`, {
                     headers: { Authorization: `Bearer ${this.accessToken}` }
                 });
                 if (!response.ok) return fallback;
