@@ -28,7 +28,7 @@ const App = () => {
 
     const [currentDate,    setCurrentDate]    = useState(new Date().toISOString().split('T')[0]);
     const [currentComment, setCurrentComment] = useState('');
-    const [currentFolder,  setCurrentFolder]  = useState('General');
+    const [currentFolder,  setCurrentFolder]  = useState('Familia');
     const [newPhotos,      setNewPhotos]       = useState([]);
     const [isSaving,       setIsSaving]        = useState(false);
     const [isAiTyping,     setIsAiTyping]      = useState(false);
@@ -42,6 +42,7 @@ const App = () => {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo,   setDateTo]   = useState('');
     const [movieScript, setMovieScript] = useState('');
+    const [movieMusicFile, setMovieMusicFile] = useState(null);
     const [isGenScript, setIsGenScript] = useState(false);
     const [movieUrl,    setMovieUrl]    = useState(null);
     const [isCreatingMovie, setIsCreatingMovie] = useState(false);
@@ -386,12 +387,15 @@ const App = () => {
         showToast('Eliminando recuerdo(s)...', 'loading');
         try {
             if (confirmDeleteObj.type === 'single') {
+                const memory = memories.find(item => item.id === confirmDeleteObj.payload);
+                if (memory?.driveId) await window.driveModule.deleteFile(memory.driveId);
                 await idbDeleteMemory(confirmDeleteObj.payload);
                 await idbDeletePending(confirmDeleteObj.payload);
                 showToast('🗑️ Recuerdo eliminado', 'success');
             } else if (confirmDeleteObj.type === 'day') {
                 const dayMems = memories.filter(m => m.date === confirmDeleteObj.payload);
                 for (const m of dayMems) {
+                    if (m.driveId) await window.driveModule.deleteFile(m.driveId);
                     await idbDeleteMemory(m.id);
                     await idbDeletePending(m.id);
                 }
@@ -462,7 +466,7 @@ const App = () => {
         setMovieProgress(0);
         showToast(`🎥 Compilando ${filtered.length} recuerdos...`, 'loading', 60000);
         try {
-            const url = await window.movieModule.compileMemories(filtered, setMovieProgress);
+            const url = await window.movieModule.compileMemories(filtered, setMovieProgress, movieMusicFile);
             setMovieUrl(url);
             setShowMovieModal(true);
             showToast(`🎬 Película lista con ${filtered.length} recuerdos`, 'success');
@@ -487,11 +491,24 @@ const App = () => {
         showToast(`📂 Carpeta "${n}" creada`, 'success');
     };
 
+    const movePhotos = async (photoIds, targetFolder) => {
+        try {
+            const selected = new Set(photoIds);
+            for (const memory of memories) {
+                if (selected.has(memory.id)) await idbSaveMemory({ ...memory, folder: targetFolder });
+            }
+            await reloadMemories();
+            showToast(`✅ ${photoIds.length} foto(s) movida(s) a ${targetFolder}`, 'success');
+        } catch {
+            showToast('Error al mover las fotos', 'error');
+        }
+    };
+
     const handleFileUpload = async (source) => {
         const files = Array.from(source?.target?.files || source || []);
         if (!files.length) return;
         const dayCount = newPhotos.length + memories.filter(m => m.date === currentDate).length;
-        if (files.length + dayCount > 10) { showToast('Límite de 10 archivos por día', 'warning'); return; }
+        if (files.length + dayCount > 20) { showToast('Límite de 20 archivos por día', 'warning'); return; }
         showToast(`Procesando ${files.length} archivo(s)...`, 'loading', 3000);
         const processed = await Promise.all(files.map(async file => ({
             id: generateId(), url: await fileToBase64(file), file,
@@ -527,7 +544,7 @@ const App = () => {
                     />
                 );
             case 'albums':
-                return <Albums dm={dm} folders={folders} memories={memories} onCreateFolder={createFolder} />;
+                return <Albums dm={dm} folders={folders} memories={memories} onCreateFolder={createFolder} onMovePhotos={movePhotos} />;
             case 'biographer':
                 return (
                     <Biographer dm={dm} hasApiKey={!!(settings.config.google_api_key || configForm.google_api_key || settings.config.deepseek_key || configForm.deepseek_key || settings.config.qwen_api_key || configForm.qwen_api_key)}
@@ -538,8 +555,8 @@ const App = () => {
             case 'video':
                 return (
                     <Video dm={dm}
-                        movie={{ dateFrom, dateTo, script: movieScript, isGenScript, isCreating: isCreatingMovie, progress: movieProgress }}
-                        actions={{ setDateFrom, setDateTo, generateScript: handleGenScript, createMovie: handleCreateMovie }}
+                        movie={{ dateFrom, dateTo, script: movieScript, musicFile: movieMusicFile, isGenScript, isCreating: isCreatingMovie, progress: movieProgress }}
+                        actions={{ setDateFrom, setDateTo, setMusicFile: setMovieMusicFile, generateScript: handleGenScript, createMovie: handleCreateMovie }}
                     />
                 );
             case 'capture':

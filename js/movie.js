@@ -81,7 +81,7 @@ function drawFrame(ctx, canvas, mem, img, idx, total, frame, totalFrames) {
 }
 
 window.movieModule = {
-    async compileMemories(memories, onProgress) {
+    async compileMemories(memories, onProgress, musicFile = null) {
         const canvas = document.createElement('canvas');
         canvas.width = 720;
         canvas.height = 540;
@@ -90,13 +90,34 @@ window.movieModule = {
             ? 'video/webm;codecs=vp9'
             : 'video/webm';
         const stream = canvas.captureStream(30);
+        let audioContext = null;
+        let audio = null;
+        let musicUrl = '';
+        if (musicFile) {
+            musicUrl = URL.createObjectURL(musicFile);
+            audio = new Audio(musicUrl);
+            audio.loop = true;
+            audio.volume = 1;
+            audioContext = new AudioContext();
+            const audioSource = audioContext.createMediaElementSource(audio);
+            const audioDestination = audioContext.createMediaStreamDestination();
+            audioSource.connect(audioDestination);
+            audioDestination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+            if (audioContext.state === 'suspended') await audioContext.resume();
+            await audio.play();
+        }
         const recorder = new MediaRecorder(stream, { mimeType });
         const chunks = [];
 
         recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
 
         const videoPromise = new Promise(resolve => {
-            recorder.onstop = () => resolve(URL.createObjectURL(new Blob(chunks, { type: 'video/webm' })));
+            recorder.onstop = () => {
+                audio?.pause();
+                audioContext?.close();
+                if (musicUrl) URL.revokeObjectURL(musicUrl);
+                resolve(URL.createObjectURL(new Blob(chunks, { type: 'video/webm' })));
+            };
         });
 
         recorder.start();

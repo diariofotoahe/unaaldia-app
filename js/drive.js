@@ -240,6 +240,34 @@
             };
         },
 
+        async deleteFile(fileId) {
+            if (!fileId) return;
+            if (!this.accessToken || !this.isConnected) throw new Error('Drive no está conectado');
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${this.accessToken}` }
+            });
+            if (!response.ok && response.status !== 404) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(`Drive: ${payload.error?.message || response.status}`);
+            }
+        },
+
+        async getVerifiedMediaUrl(memory) {
+            const fallback = memory?.driveUrl || memory?.driveViewLink || memory?.url || '';
+            if (!memory?.driveId || !this.accessToken || !this.isConnected) return fallback;
+            try {
+                const response = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(memory.driveId)}?alt=media`, {
+                    headers: { Authorization: `Bearer ${this.accessToken}` }
+                });
+                if (!response.ok) return fallback;
+                const blob = await response.blob();
+                return URL.createObjectURL(blob);
+            } catch {
+                return fallback;
+            }
+        },
+
         async syncPending(onProgress) {
             if (!navigator.onLine || !this.isConnected) return;
             const pending = await idbGetAllPending();

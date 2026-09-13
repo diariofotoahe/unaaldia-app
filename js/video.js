@@ -1,6 +1,6 @@
 const VideoView = ({ dm, movie, actions }) => {
-    const { dateFrom, dateTo, script, isGenScript, isCreating, progress } = movie;
-    const { setDateFrom, setDateTo, generateScript, createMovie } = actions;
+    const { dateFrom, dateTo, script, musicFile, isGenScript, isCreating, progress } = movie;
+    const { setDateFrom, setDateTo, setMusicFile, generateScript, createMovie } = actions;
 
     return (
         <div className="space-y-5">
@@ -21,6 +21,16 @@ const VideoView = ({ dm, movie, actions }) => {
                             />
                         </div>
                     ))}
+                </div>
+                <div className={`p-3 rounded-xl border mb-5 ${dm ? 'bg-white/[0.05] border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                    <label className="text-[9px] uppercase text-slate-400 font-bold mb-1 block">Música de fondo</label>
+                    <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={e => setMusicFile(e.target.files[0] || null)}
+                        className={`w-full text-[10px] ${dm ? 'text-slate-300' : 'text-slate-600'}`}
+                    />
+                    {musicFile && <p className="mt-1 truncate text-[10px] text-emerald-500">{musicFile.name}</p>}
                 </div>
                 <div className="space-y-2">
                     <button

@@ -5,6 +5,8 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
     const [sourceMenuOpen, setSourceMenuOpen] = React.useState(false);
     const [cameraOpen, setCameraOpen] = React.useState(false);
     const [cameraError, setCameraError] = React.useState('');
+    const [cameraFacingMode, setCameraFacingMode] = React.useState('environment');
+    const [cameraZoom, setCameraZoom] = React.useState(1);
     const fileInputRef = React.useRef(null);
     const videoRef = React.useRef(null);
     const streamRef = React.useRef(null);
@@ -25,7 +27,7 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
                     throw new Error('Este navegador no permite acceder a la cámara.');
                 }
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { ideal: 'environment' } },
+                    video: { facingMode: { ideal: cameraFacingMode } },
                     audio: false
                 });
                 if (!active) {
@@ -49,7 +51,7 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
             streamRef.current?.getTracks().forEach(track => track.stop());
             streamRef.current = null;
         };
-    }, [cameraOpen]);
+    }, [cameraOpen, cameraFacingMode]);
 
     const openFiles = () => {
         setSourceMenuOpen(false);
@@ -62,13 +64,24 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
         setCameraOpen(true);
     };
 
+    const switchCamera = () => {
+        setCameraFacingMode(mode => mode === 'environment' ? 'user' : 'environment');
+        setCameraZoom(1);
+    };
+
     const takePhoto = () => {
         const video = videoRef.current;
         if (!video || !video.videoWidth || !video.videoHeight) return;
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        const context = canvas.getContext('2d');
+        const scale = cameraZoom;
+        const sourceWidth = video.videoWidth / scale;
+        const sourceHeight = video.videoHeight / scale;
+        const sourceX = (video.videoWidth - sourceWidth) / 2;
+        const sourceY = (video.videoHeight - sourceHeight) / 2;
+        context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(blob => {
             if (!blob) return;
             uploadFiles([new File([blob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' })]);
@@ -147,9 +160,35 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
                                     <button type="button" onClick={openFiles} className="mt-3 rounded-xl bg-slate-500/20 px-3 py-2 text-slate-200">Seleccionar archivo</button>
                                 </div>
                             ) : (
-                                <video ref={videoRef} className="aspect-[3/4] w-full rounded-2xl bg-black object-cover" playsInline muted />
+                                <video
+                                    ref={videoRef}
+                                    className="aspect-[3/4] w-full rounded-2xl bg-black object-cover"
+                                    style={{ transform: `scale(${cameraZoom})`, transformOrigin: 'center' }}
+                                    playsInline muted
+                                />
                             )}
-                            {!cameraError && <button type="button" onClick={takePhoto} className="mt-3 w-full rounded-2xl bg-emerald-500 py-3 text-sm font-semibold text-slate-950">● Tomar foto</button>}
+                            {!cameraError && (
+                                <div className="mt-3 space-y-3">
+                                    <div className="flex items-center gap-2 text-xs">
+                                        <span className="w-12">Zoom</span>
+                                        <input
+                                            aria-label="Zoom de cámara"
+                                            type="range"
+                                            min="1"
+                                            max="3"
+                                            step="0.1"
+                                            value={cameraZoom}
+                                            onChange={e => setCameraZoom(Number(e.target.value))}
+                                            className="flex-1"
+                                        />
+                                        <span className="w-8 text-right">{cameraZoom.toFixed(1)}x</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={switchCamera} className="flex-1 rounded-2xl bg-slate-500/20 py-3 text-xs font-semibold">{cameraFacingMode === 'user' ? '📷 Frontal' : '📷 Trasera'}</button>
+                                        <button type="button" onClick={takePhoto} className="flex-[2] rounded-2xl bg-emerald-500 py-3 text-sm font-semibold text-slate-950">● Tomar foto</button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

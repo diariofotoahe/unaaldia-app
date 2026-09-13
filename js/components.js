@@ -89,8 +89,26 @@
         };
 
         const MediaPreview = ({ media, className = '', alt = '', videoProps = {}, imgProps = {} }) => {
-            const url = window.getMediaUrl(media);
+            const [url, setUrl] = React.useState(() => window.getMediaUrl(media));
             const mime = media?.mimeType;
+            React.useEffect(() => {
+                let objectUrl = '';
+                let active = true;
+                const resolveUrl = async () => {
+                    if (window.driveModule?.getVerifiedMediaUrl) {
+                        const resolved = await window.driveModule.getVerifiedMediaUrl(media);
+                        if (active) {
+                            objectUrl = resolved.startsWith('blob:') ? resolved : '';
+                            setUrl(resolved);
+                        }
+                    }
+                };
+                resolveUrl();
+                return () => {
+                    active = false;
+                    if (objectUrl) URL.revokeObjectURL(objectUrl);
+                };
+            }, [media]);
             if (window.isVideo(url, mime)) {
                 return <video src={url} className={className} {...videoProps} />;
             }
