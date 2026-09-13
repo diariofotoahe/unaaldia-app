@@ -1,0 +1,11 @@
+
+para actualizar la ppa en NETFLIFY   (hosting)
+
+
+git add .
+git commit -m "Se agregaron nuevas funciones"
+git push
+
+
+
+liga .-    unaaldia.netlify.app
