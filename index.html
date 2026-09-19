@@ -65,10 +65,28 @@
                         reg.addEventListener('updatefound', () => {
                             const newWorker = reg.installing;
                             newWorker.addEventListener('statechange', () => {
+                                // Cuando el nuevo SW termina de instalarse y ya había uno antiguo controlando,
+                                // activamos el nuevo inmediatamente y recargamos una sola vez.
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('[PWA] Nueva versión detectada. Activando…');
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
                                     if (window.__onSwUpdate) window.__onSwUpdate();
                                 }
                             });
+                        });
+
+                        // Cuando el nuevo SW toma el control, recargamos para aplicar el código nuevo.
+                        navigator.serviceWorker.addEventListener('controllerchange', () => {
+                            if (window.__swReloading) return;
+                            window.__swReloading = true;
+                            console.log('[PWA] Actualizando a la nueva versión…');
+                            window.location.reload();
+                        });
+
+                        // Buscar actualizaciones al cargar y al volver a la pestaña.
+                        reg.update();
+                        document.addEventListener('visibilitychange', () => {
+                            if (document.visibilityState === 'visible') reg.update();
                         });
                     })
                     .catch(err => console.warn('[PWA] SW no pudo registrarse:', err));

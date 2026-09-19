@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════
 // UnaAlDia — Service Worker v5.0 (PWA / Offline-First)
 // ═══════════════════════════════════════════════════════
-const CACHE_NAME = 'unaaldia-v5';
-const APP_SHELL_CACHE = 'unaaldia-shell-v5';
-const MEDIA_CACHE = 'unaaldia-media-v5';
+const CACHE_NAME = 'unaaldia-v6';
+const APP_SHELL_CACHE = 'unaaldia-shell-v6';
+const MEDIA_CACHE = 'unaaldia-media-v6';
 
 // Recursos del shell de la aplicación (cargados en el install)
 const APP_SHELL_URLS = [
@@ -141,7 +141,12 @@ async function handleFetch(request) {
     }
   }
 
-  // ── 1. App Shell (HTML, íconos, manifest) → Cache First
+  // ── 1. Código de la app (JS) → Network First (siempre lo último con conexión)
+  if (url.pathname.endsWith('.js')) {
+    return networkFirst(request, APP_SHELL_CACHE);
+  }
+
+  // ── 1b. Shell estático (HTML, íconos, manifest, CSS) → Cache First
   if (isAppShell(url)) {
     return cacheFirst(request, APP_SHELL_CACHE);
   }
