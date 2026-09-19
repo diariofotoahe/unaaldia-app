@@ -64,7 +64,7 @@
                     <img src="./static/icon-192.png" className="w-24 h-24 rounded-3xl shadow-2xl" alt="UnaAlDia" />
                     <div>
                         <h1 className="text-2xl font-semibold text-white text-center">UnaAlDia</h1>
-                        <p className="text-xs text-slate-400 text-center mt-1">Legado Digital</p>
+                        <p className="text-xs text-slate-400 text-center mt-1">Recuerdo Digital</p>
                     </div>
                 </div>
                 <div className="absolute bottom-16 flex items-center gap-2">
@@ -77,7 +77,7 @@
 
         // ─── Componente Marquee ────────────────────────────────────
         const WelcomeBanner = ({ dm }) => {
-            const text = "Bienvenido a tu día a día · coloca aquí tus vivencias de hoy que serán tus recuerdos de mañana ·";
+            const text = "coloca aquí tus vivencias de hoy que serán tus recuerdos de mañana ·";
             return (
                 <div className={`border rounded-2xl py-3 mb-3 marquee-container ${dm ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white/70'}`}>
                     <div className={`marquee-content text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>

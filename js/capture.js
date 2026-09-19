@@ -5,11 +5,32 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
     const [sourceMenuOpen, setSourceMenuOpen] = React.useState(false);
     const [cameraOpen, setCameraOpen] = React.useState(false);
     const [cameraError, setCameraError] = React.useState('');
+    const [cameraLoading, setCameraLoading] = React.useState(false);
+    const [hasMultipleCameras, setHasMultipleCameras] = React.useState(false);
     const [cameraFacingMode, setCameraFacingMode] = React.useState('environment');
     const [cameraZoom, setCameraZoom] = React.useState(1);
     const fileInputRef = React.useRef(null);
     const videoRef = React.useRef(null);
     const streamRef = React.useRef(null);
+
+    React.useEffect(() => {
+        const detectCameras = async () => {
+            try {
+                if (!navigator.mediaDevices?.enumerateDevices) {
+                    setHasMultipleCameras(true);
+                    return;
+                }
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cameras = devices.filter(d => d.kind === 'videoinput');
+                // Si no se pueden etiquetar/numerar (permisos sin conceder), asumimos múltiples.
+                setHasMultipleCameras(cameras.length !== 1);
+            } catch (error) {
+                setHasMultipleCameras(true);
+            }
+        };
+        detectCameras();
+        return undefined;
+    }, []);
 
     const closeCamera = () => {
         streamRef.current?.getTracks().forEach(track => track.stop());
@@ -22,6 +43,7 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
 
         let active = true;
         const startCamera = async () => {
+            setCameraLoading(true);
             try {
                 if (!navigator.mediaDevices?.getUserMedia) {
                     throw new Error('Este navegador no permite acceder a la cámara.');
@@ -35,12 +57,22 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
                     return;
                 }
                 streamRef.current = stream;
+
+                // Tras conceder permiso, volvemos a contar cámaras (etiquetas disponibles).
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const cameraCount = devices.filter(d => d.kind === 'videoinput').length;
+                    setHasMultipleCameras(cameraCount !== 1);
+                } catch (detectError) { /* ignorar */ }
+
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                     await videoRef.current.play();
                 }
             } catch (error) {
-                setCameraError(error?.message || 'No fue posible abrir la cámara.');
+                if (active) setCameraError(error?.message || 'No fue posible abrir la cámara.');
+            } finally {
+                if (active) setCameraLoading(false);
             }
         };
 
@@ -64,6 +96,13 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
         setCameraOpen(true);
     };
 
+    const openSelfieCamera = () => {
+        setSourceMenuOpen(false);
+        setCameraFacingMode('user');
+        setCameraZoom(1);
+        setCameraOpen(true);
+    };
+
     const switchCamera = () => {
         setCameraFacingMode(mode => mode === 'environment' ? 'user' : 'environment');
         setCameraZoom(1);
@@ -81,6 +120,10 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
         const sourceHeight = video.videoHeight / scale;
         const sourceX = (video.videoWidth - sourceWidth) / 2;
         const sourceY = (video.videoHeight - sourceHeight) / 2;
+        if (cameraFacingMode === 'user') {
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+        }
         context.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(blob => {
             if (!blob) return;
@@ -138,8 +181,11 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
                     {sourceMenuOpen && (
                         <div className={`absolute inset-x-3 top-3 z-20 rounded-2xl border p-3 shadow-2xl ${dm ? 'bg-slate-900 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider">Añadir recuerdo desde</p>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className={`grid gap-2 ${hasMultipleCameras ? 'grid-cols-3' : 'grid-cols-2'}`}>
                                 <button type="button" onClick={openCamera} className={`rounded-xl px-3 py-3 text-xs font-medium ${dm ? 'bg-white/10 hover:bg-white/20' : 'bg-slate-100 hover:bg-slate-200'}`}>📷 Cámara</button>
+                                {hasMultipleCameras && (
+                                    <button type="button" onClick={openSelfieCamera} className={`rounded-xl px-3 py-3 text-xs font-medium ${dm ? 'bg-white/10 hover:bg-white/20' : 'bg-slate-100 hover:bg-slate-200'}`}>🤳 Selfie</button>
+                                )}
                                 <button type="button" onClick={openFiles} className={`rounded-xl px-3 py-3 text-xs font-medium ${dm ? 'bg-white/10 hover:bg-white/20' : 'bg-slate-100 hover:bg-slate-200'}`}>🖼️ Archivos o Fotos</button>
                             </div>
                             <button type="button" onClick={() => setSourceMenuOpen(false)} className="mt-2 w-full text-[10px] text-slate-400">Cancelar</button>
@@ -151,7 +197,7 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
                     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-4">
                         <div className={`w-full max-w-md rounded-3xl p-4 ${dm ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'}`}>
                             <div className="mb-3 flex items-center justify-between">
-                                <h3 className="text-sm font-semibold">Tomar foto</h3>
+                                <h3 className="text-sm font-semibold">{cameraFacingMode === 'user' ? '🤳 Selfie' : '📷 Tomar foto'}</h3>
                                 <button type="button" onClick={closeCamera} className="rounded-full px-3 py-1 text-xs bg-slate-500/20">Cerrar</button>
                             </div>
                             {cameraError ? (
@@ -160,12 +206,20 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
                                     <button type="button" onClick={openFiles} className="mt-3 rounded-xl bg-slate-500/20 px-3 py-2 text-slate-200">Seleccionar archivo</button>
                                 </div>
                             ) : (
-                                <video
-                                    ref={videoRef}
-                                    className="aspect-[3/4] w-full rounded-2xl bg-black object-cover"
-                                    style={{ transform: `scale(${cameraZoom})`, transformOrigin: 'center' }}
-                                    playsInline muted
-                                />
+                                <div className="relative">
+                                    <video
+                                        ref={videoRef}
+                                        className="aspect-[3/4] w-full rounded-2xl bg-black object-cover"
+                                        style={{ transform: `scale(${cameraZoom}) scaleX(${cameraFacingMode === 'user' ? -1 : 1})`, transformOrigin: 'center' }}
+                                        playsInline muted
+                                    />
+                                    {cameraLoading && (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-black/70 text-white">
+                                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                            <p className="text-xs font-medium">Iniciando cámara…</p>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                             {!cameraError && (
                                 <div className="mt-3 space-y-3">
@@ -184,8 +238,25 @@ const CaptureView = ({ dm, folders, capture, actions }) => {
                                         <span className="w-8 text-right">{cameraZoom.toFixed(1)}x</span>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button type="button" onClick={switchCamera} className="flex-1 rounded-2xl bg-slate-500/20 py-3 text-xs font-semibold">{cameraFacingMode === 'user' ? '📷 Frontal' : '📷 Trasera'}</button>
-                                        <button type="button" onClick={takePhoto} className="flex-[2] rounded-2xl bg-emerald-500 py-3 text-sm font-semibold text-slate-950">● Tomar foto</button>
+                                        {hasMultipleCameras && (
+                                            <button
+                                                type="button"
+                                                onClick={switchCamera}
+                                                disabled={cameraLoading}
+                                                title="Cambiar entre cámara trasera y selfie"
+                                                className={`flex-1 rounded-2xl px-2 py-3 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed ${dm ? 'bg-white/10 hover:bg-white/20' : 'bg-slate-200 hover:bg-slate-300'}`}
+                                            >
+                                                {cameraFacingMode === 'user' ? '🔄 Usar trasera' : '🤳 Cambiar a selfie'}
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={takePhoto}
+                                            disabled={cameraLoading}
+                                            className="flex-[2] rounded-2xl bg-emerald-500 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {cameraLoading ? 'Iniciando…' : '● Tomar foto'}
+                                        </button>
                                     </div>
                                 </div>
                             )}
